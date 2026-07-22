@@ -1,0 +1,45 @@
+name: Corroventa MQTT Gateway
+version: "0.1.0"
+slug: corroventa
+description: >
+  RF gateway for Corroventa CTR/HomeVision — publishes telemetry and config
+  over MQTT with Home Assistant discovery. Requires a Yard Stick One (USB).
+url: https://github.com/mberglundmx/corroventa-mqtt-gateway
+arch:
+  - amd64
+  - aarch64
+  - armv7
+init: false
+startup: application
+boot: auto
+services:
+  - mqtt:need
+usb: true
+udev: true
+privileged:
+  - SYS_RAWIO
+devices:
+  - /dev/bus/usb
+map:
+  - addon_config:rw
+options:
+  log_level: info
+  radio_mode: hw
+  radio_enabled: true
+  discovery_prefix: homeassistant
+  topic_prefix: corroventa
+  device_model: CTR300TT2
+  tx_repeats: 8
+schema:
+  log_level: list(debug|info|warning|error)
+  radio_mode: list(hw|soft)
+  radio_enabled: bool
+  discovery_prefix: str
+  topic_prefix: str
+  device_model: str
+  tx_repeats: int(1,32)
+  mqtt_host: str?
+  mqtt_port: port?
+  mqtt_username: str?
+  mqtt_password: password?
+  mqtt_client_id: str?

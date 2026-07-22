@@ -1,0 +1,3 @@
+paho-mqtt>=2.1.0,<3
+pyusb>=1.2.1
+rfcat>=2.0.1

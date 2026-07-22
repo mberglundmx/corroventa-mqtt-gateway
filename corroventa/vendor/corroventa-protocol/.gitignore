@@ -1,0 +1,11 @@
+/build/
+/build-python/
+/cmake-build-*/
+/.idea/
+/.vscode/
+*.user
+*.o
+*.a
+*.so
+CMakeCache.txt
+CMakeFiles/
