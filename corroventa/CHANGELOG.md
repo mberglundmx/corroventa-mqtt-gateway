@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.7
+
+- Continuous fan ON = `yy=0x01` (was ghost-era `0x02`); decode matches
+
 ## 0.2.6
 
 - Device time sensor: minute resolution + diagnostic (avoids HA logbook spam)

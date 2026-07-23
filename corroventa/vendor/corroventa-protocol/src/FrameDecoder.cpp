@@ -33,7 +33,7 @@ ConfigBlock readConfigBlock(ByteSpan frame) {
   cfg.mgi = asSigned(frame[14]);
   cfg.static_rf = frame[15];
   cfg.alarm_rf = frame[16];
-  cfg.continuous_fan = frame[17] == 0x02;
+  cfg.continuous_fan = frame[17] == 0x01;
   cfg.mgi_mode = frame[18] == 0x01;
   return cfg;
 }

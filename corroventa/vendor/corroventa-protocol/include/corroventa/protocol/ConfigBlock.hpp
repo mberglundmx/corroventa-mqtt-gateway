@@ -11,7 +11,7 @@ struct ConfigBlock {
   std::int8_t mgi = 0;         // MM
   std::uint8_t static_rf = 0;  // SS (%)
   std::uint8_t alarm_rf = 0;   // ZZ (%)
-  bool continuous_fan = false; // yy: 0x00 / 0x02
+  bool continuous_fan = false; // yy: 0x00=OFF, 0x01=ON (ghost demod showed 0x02)
   bool mgi_mode = true;        // MODE: 0x01=MGI, 0x00=static RF
 };
 

@@ -43,6 +43,14 @@ int run_encode_config_write_tests() {
     EXPECT(decoded.config.mgi == -7);
   }
 
+  packet.config.continuous_fan = true;
+  const std::vector<std::uint8_t> fan_on = encoder.encode(packet);
+  EXPECT(fan_on.size() == sizeof(expected));
+  if (fan_on.size() == sizeof(expected)) {
+    EXPECT(fan_on[17] == 0x01);  // canonical ON (ghost was 0x02)
+    EXPECT(fan_on[18] == 0x01);
+  }
+
   KeepalivePacket ka;
   ka.seq = 0x1E;
   const auto ka_frame = encoder.encode(ka);

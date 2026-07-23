@@ -22,7 +22,7 @@ std::vector<std::uint8_t> FrameEncoder::encode(const ConfigWritePacket& packet) 
   out.push_back(static_cast<std::uint8_t>(packet.config.mgi));
   out.push_back(packet.config.static_rf);
   out.push_back(packet.config.alarm_rf);
-  out.push_back(packet.config.continuous_fan ? 0x02 : 0x00);
+  out.push_back(packet.config.continuous_fan ? 0x01 : 0x00);
   out.push_back(packet.config.mgi_mode ? 0x01 : 0x00);
   return out;
 }
