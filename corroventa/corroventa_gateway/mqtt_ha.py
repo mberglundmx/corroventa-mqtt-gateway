@@ -122,7 +122,12 @@ class HaMqtt:
             "name": f"Corroventa {device_id}",
             "manufacturer": "Corroventa",
             "model": self.settings.device_model,
-            "sw_version": "gateway-0.1.0",
+            "sw_version": "gateway-0.2.1",
+        }
+        origin = {
+            "name": "Corroventa MQTT Gateway",
+            "sw_version": "0.2.1",
+            "support_url": "https://github.com/mberglundmx/corroventa-mqtt-gateway",
         }
 
         def pub(component: str, object_id: str, payload: dict[str, Any]) -> None:
@@ -133,9 +138,12 @@ class HaMqtt:
                 "payload_available": "online",
                 "payload_not_available": "offline",
                 "device": device,
+                "origin": origin,
                 "unique_id": f"{node}_{object_id}",
             }
-            self._client.publish(topic, json.dumps(payload), retain=True, qos=1)
+            info = self._client.publish(topic, json.dumps(payload), retain=True, qos=1)
+            log.debug("Discovery %s rc=%s", topic, getattr(info, "rc", "?"))
+            log.info("Discovery → %s", topic)
 
         tel = f"{base}/telemetry"
         cfg = f"{base}/config"

@@ -28,6 +28,12 @@ MQTT credentials normally come from the Supervisor MQTT service. Optional
 
 ## Entities
 
-After the first `ConfigStatus` / `Telemetry` from the CTR, HA gets a device
-named **Corroventa \<ui-id\>** with sensors (temp, RH, fan, …) and controls
-(MGI, hysteresis, RF%, fan, mode).
+After the first `ConfigStatus` from the CTR, discovery is published under the
+MQTT integration. There is **no** notification bell — look in:
+
+**Settings → Devices & services → MQTT → devices**
+
+Device name: **Corroventa \<ui-id\>** (e.g. `Corroventa 1348002652`).
+
+Discovery topics look like:
+`homeassistant/sensor/corroventa_<id>/temperature/config`
