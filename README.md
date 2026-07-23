@@ -14,6 +14,18 @@ Publishes telemetry/config over MQTT with **MQTT discovery**. Commands on
 5. Plug in a **Yard Stick One**, start the add-on
 6. Watch logs for `Published HA discovery for device …` / learned HV prefix
 
+### Update to a newer version
+
+Supervisor does **not** auto-poll git every commit. After we bump `corroventa/config.yaml`:
+
+1. **Settings → Add-ons → Add-on store → ⋮ → Check for updates**
+2. Open **Corroventa MQTT Gateway** → **Update** (rebuilds the image)
+3. Confirm the add-on page shows version **0.2.4** (or newer)
+
+If it still says 0.1.0: remove the repository, re-add
+`https://github.com/mberglundmx/corroventa-mqtt-gateway`, check for updates again.
+A plain **Restart** does not pull new code.
+
 USB passthrough is declared in the add-on (`usb`, `/dev/bus/usb`).
 
 ## Repository layout (HA convention)
