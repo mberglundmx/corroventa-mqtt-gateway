@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.8
+
+- Clearer select name **MGI / Static RF**; always re-publish MQTT discovery after upgrades
+
 ## 0.2.7
 
 - Continuous fan ON = `yy=0x01` (was ghost-era `0x02`); decode matches
