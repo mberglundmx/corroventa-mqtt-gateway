@@ -122,11 +122,11 @@ class HaMqtt:
             "name": f"Corroventa {device_id}",
             "manufacturer": "Corroventa",
             "model": self.settings.device_model,
-            "sw_version": "gateway-0.2.1",
+            "sw_version": "gateway-0.2.3",
         }
         origin = {
             "name": "Corroventa MQTT Gateway",
-            "sw_version": "0.2.1",
+            "sw_version": "0.2.3",
             "support_url": "https://github.com/mberglundmx/corroventa-mqtt-gateway",
         }
 

@@ -188,7 +188,13 @@ class DeviceManager:
                                 composed.hex(" "),
                             )
                 self._mqtt.publish_config(device_id, decoded.config)
-                log.debug("ConfigStatus device=%s mgi=%s", device_id, decoded.config.mgi)
+                log.info(
+                    "ConfigStatus device=%s mgi=%s fan=%s mode=%s",
+                    device_id,
+                    decoded.config.mgi,
+                    decoded.config.continuous_fan,
+                    "mgi" if decoded.config.mgi_mode else "static",
+                )
                 return
 
             if device_id is None:
@@ -224,15 +230,19 @@ class DeviceManager:
             merged = base.merge_patch(patch)
             frame = encode_config_write(merged, header)
             log.info(
-                "TX ConfigWrite device=%s hv=0x%02x ctr=0x%02x header=%s mgi=%s",
+                "TX ConfigWrite device=%s header=%s mgi=%s fan=%s mode=%s yy=0x%02x frame=%s",
                 device_id,
-                header[2],
-                header[3],
                 header.hex(" "),
                 merged.mgi,
+                merged.continuous_fan,
+                "mgi" if merged.mgi_mode else "static",
+                frame[17] if len(frame) > 17 else -1,
+                frame.hex(" "),
             )
         self._transmit(frame)
         with self._lock:
             self._device(device_id).config = merged
             if self._device(device_id).config_write_header is None:
                 self._device(device_id).config_write_header = header
+            # Optimistic MQTT state so HA switch/numbers update before next ConfigStatus.
+            self._mqtt.publish_config(device_id, merged)
