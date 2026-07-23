@@ -132,11 +132,11 @@ class HaMqtt:
             "name": f"Corroventa {device_id}",
             "manufacturer": "Corroventa",
             "model": self.settings.device_model,
-            "sw_version": "gateway-0.2.5",
+            "sw_version": "gateway-0.2.6",
         }
         origin = {
             "name": "Corroventa MQTT Gateway",
-            "sw_version": "0.2.5",
+            "sw_version": "0.2.6",
             "support_url": "https://github.com/mberglundmx/corroventa-mqtt-gateway",
         }
 
@@ -259,7 +259,9 @@ class HaMqtt:
             {
                 "name": "Device time",
                 "state_topic": tel,
-                "value_template": "{{ value_json.datetime }}",
+                # Minute resolution — second ticks would flood the HA logbook.
+                "value_template": "{{ value_json.datetime[:16] }}",
+                "entity_category": "diagnostic",
             },
         )
         pub(

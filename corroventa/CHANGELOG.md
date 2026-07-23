@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.6
+
+- Device time sensor: minute resolution + diagnostic (avoids HA logbook spam)
+
 ## 0.2.5
 
 - Service days: uint16 LE at Telemetry `[23:25]` (was low byte only → e.g. 106 instead of 362)
