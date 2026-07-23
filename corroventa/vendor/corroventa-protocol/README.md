@@ -21,7 +21,7 @@ Documented here; implemented with HW flags in the Yard Stick transport.
 | Rate | 38.4 kchip/s → 19.2 kbit/s |
 | Deviation | 19.2 kHz (TX and RX) |
 | Preamble / sync | AA… + `D391` ×2 |
-| Length mode | FLEN (variable Corroventa `L` parsed in host) |
+| Length mode | **VLEN** on RX (max `L=0x37`); FLEN on TX for `L‖payload` |
 | CRC | **HW** TX and RX (`setEnablePktCRC`) over `L ‖ payload` |
 | RX length | **VLEN** — radio uses `L`, checks CRC; FIFO = payload only |
 
