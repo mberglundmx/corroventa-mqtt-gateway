@@ -41,12 +41,38 @@ def run(settings: Settings | None = None) -> int:
     mqtt = HaMqtt(settings, on_config_command=on_config_command)
     manager = DeviceManager(mqtt, transmit=transmit, tx_repeats=settings.tx_repeats)
 
+    seen_kinds: set[str] = set()
+    rx_ok = 0
+    rx_fail = 0
+    last_rx_summary = time.time()
+
     def on_raw_frame(raw: bytes) -> None:
+        nonlocal rx_ok, rx_fail, last_rx_summary
         decoded = decode_frame(raw)
         if decoded is None:
+            rx_fail += 1
+            log.debug("RX undecoded (%d B) %s", len(raw), raw[:16].hex(" "))
             return
-        log.debug("RX %s %s", decoded.kind, decoded.raw_hex[:48])
+        rx_ok += 1
+        if decoded.kind not in seen_kinds:
+            seen_kinds.add(decoded.kind)
+            log.info("First RX %s  %s", decoded.kind, decoded.raw_hex[:48])
+        else:
+            log.debug("RX %s %s", decoded.kind, decoded.raw_hex[:48])
         manager.handle_frame(decoded)
+        now = time.time()
+        if now - last_rx_summary >= 60.0:
+            log.info(
+                "RX summary: ok=%s fail=%s kinds=%s device_id=%s",
+                rx_ok,
+                rx_fail,
+                ",".join(sorted(seen_kinds)) or "-",
+                manager.primary_device_id,
+            )
+            last_rx_summary = now
+            rx_ok = 0
+            rx_fail = 0
+
 
     stop = False
 

@@ -192,7 +192,13 @@ class DeviceManager:
                 return
 
             if device_id is None:
-                log.debug("Skipping %s until device_id known", decoded.kind)
+                if decoded.kind in ("telemetry", "statistics", "config_status"):
+                    log.info(
+                        "Got %s but no UI device id yet — waiting for ConfigStatus/PairingBeacon",
+                        decoded.kind,
+                    )
+                else:
+                    log.debug("Skipping %s until device_id known", decoded.kind)
                 return
 
             if decoded.kind == "telemetry" and decoded.telemetry:
