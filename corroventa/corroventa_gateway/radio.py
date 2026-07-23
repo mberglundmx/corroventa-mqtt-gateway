@@ -9,11 +9,14 @@ log = logging.getLogger(__name__)
 
 FrameCallback = Callable[[bytes], None]
 
+SUPPORTED_RADIO_MODES = frozenset({"ys1"})
+
 
 class RadioBridge:
-    """Yard Stick One RX/TX using vendored corroventa_radio_yardstick (HW only)."""
+    """Southbound radio bridge. `radio_mode` selects the implementation (ys1 today)."""
 
-    def __init__(self, enabled: bool = True) -> None:
+    def __init__(self, mode: str = "ys1", enabled: bool = True) -> None:
+        self.mode = mode
         self.enabled = enabled
         self._device = None
         self._receiver = None
@@ -27,6 +30,16 @@ class RadioBridge:
         if not self.enabled:
             log.warning("Radio disabled — MQTT-only mode")
             return
+        if self.mode not in SUPPORTED_RADIO_MODES:
+            raise ValueError(
+                f"Unsupported radio_mode={self.mode!r}; supported: {sorted(SUPPORTED_RADIO_MODES)}"
+            )
+        if self.mode == "ys1":
+            self._start_ys1()
+        else:
+            raise AssertionError(f"unhandled radio_mode={self.mode}")
+
+    def _start_ys1(self) -> None:
         from corroventa_radio_yardstick.radio import open_device
         from corroventa_radio_yardstick.receiver import YardStickReceiver
 
@@ -35,7 +48,7 @@ class RadioBridge:
         self._receiver.open()
         self._rx = threading.Thread(target=self._rx_loop, name="ys1-rx", daemon=True)
         self._rx.start()
-        log.info("Radio RX started (HW Manchester)")
+        log.info("Radio RX started (radio_mode=ys1, Yard Stick One)")
 
     def stop(self) -> None:
         self._stop.set()
@@ -53,6 +66,8 @@ class RadioBridge:
         if not self.enabled or self._device is None:
             log.warning("TX skipped (radio disabled): %s", frame.hex(" "))
             return
+        if self.mode != "ys1":
+            raise ValueError(f"TX not implemented for radio_mode={self.mode!r}")
         with self._tx_lock:
             from corroventa_radio_yardstick.radio import idle_device
             from corroventa_radio_yardstick.receiver import YardStickReceiver

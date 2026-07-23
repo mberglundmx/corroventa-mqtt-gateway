@@ -25,9 +25,13 @@ def setup_logging(level: str) -> None:
 def run(settings: Settings | None = None) -> int:
     settings = settings or Settings.from_env()
     setup_logging(settings.log_level)
-    log.info("Corroventa gateway starting (radio_enabled=%s)", settings.radio_enabled)
+    log.info(
+        "Corroventa gateway starting (radio_enabled=%s radio_mode=%s)",
+        settings.radio_enabled,
+        settings.radio_mode,
+    )
 
-    radio = RadioBridge(enabled=settings.radio_enabled)
+    radio = RadioBridge(mode=settings.radio_mode, enabled=settings.radio_enabled)
     mqtt: HaMqtt | None = None
     manager: DeviceManager | None = None
 
@@ -95,6 +99,7 @@ def run(settings: Settings | None = None) -> int:
             mqtt_password=settings.mqtt_password,
             mqtt_client_id=settings.mqtt_client_id,
             log_level=settings.log_level,
+            radio_mode=settings.radio_mode,
             radio_enabled=False,
             discovery_prefix=settings.discovery_prefix,
             topic_prefix=settings.topic_prefix,

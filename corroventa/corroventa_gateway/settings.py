@@ -11,6 +11,17 @@ def _env_bool(name: str, default: bool) -> bool:
     return raw.strip().lower() in ("1", "true", "yes", "on")
 
 
+def _normalize_radio_mode(raw: str) -> str:
+    """Map radio_mode to a radio backend implementation.
+
+    Legacy values hw/soft from early builds map to ys1 (soft path removed).
+    """
+    mode = raw.strip().lower()
+    if mode in ("ys1", "yardstick", "yard_stick", "yard-stick-one", "hw", "soft"):
+        return "ys1"
+    return mode
+
+
 @dataclass(frozen=True)
 class Settings:
     mqtt_host: str = "127.0.0.1"
@@ -19,6 +30,7 @@ class Settings:
     mqtt_password: str | None = None
     mqtt_client_id: str = "corroventa-gateway"
     log_level: str = "info"
+    radio_mode: str = "ys1"
     radio_enabled: bool = True
     discovery_prefix: str = "homeassistant"
     topic_prefix: str = "corroventa"
@@ -34,6 +46,7 @@ class Settings:
             mqtt_password=os.environ.get("MQTT_PASSWORD") or None,
             mqtt_client_id=os.environ.get("MQTT_CLIENT_ID", "corroventa-gateway"),
             log_level=os.environ.get("LOG_LEVEL", "info").lower(),
+            radio_mode=_normalize_radio_mode(os.environ.get("RADIO_MODE", "ys1")),
             radio_enabled=_env_bool("RADIO_ENABLED", True),
             discovery_prefix=os.environ.get("DISCOVERY_PREFIX", "homeassistant"),
             topic_prefix=os.environ.get("TOPIC_PREFIX", "corroventa"),

@@ -17,6 +17,7 @@ Home Assistant via MQTT discovery entities.
 | Option | Default | Meaning |
 |--------|---------|---------|
 | `log_level` | `info` | Use `debug` to see every RX frame |
+| `radio_mode` | `ys1` | Radio backend (`ys1` = Yard Stick One; only option today) |
 | `radio_enabled` | `true` | Set `false` for MQTT-only debugging |
 | `tx_repeats` | `8` | ConfigWrite air repeats |
 | `topic_prefix` | `corroventa` | MQTT root |

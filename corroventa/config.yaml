@@ -1,5 +1,5 @@
 name: Corroventa MQTT Gateway
-version: "0.2.0"
+version: "0.2.1"
 slug: corroventa
 description: >
   RF gateway for Corroventa CTR/HomeVision — publishes telemetry and config
@@ -24,6 +24,7 @@ map:
   - addon_config:rw
 options:
   log_level: info
+  radio_mode: ys1
   radio_enabled: true
   discovery_prefix: homeassistant
   topic_prefix: corroventa
@@ -31,6 +32,7 @@ options:
   tx_repeats: 8
 schema:
   log_level: list(debug|info|warning|error)
+  radio_mode: list(ys1)
   radio_enabled: bool
   discovery_prefix: str
   topic_prefix: str
