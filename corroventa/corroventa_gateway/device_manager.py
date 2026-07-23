@@ -189,9 +189,12 @@ class DeviceManager:
                             )
                 self._mqtt.publish_config(device_id, decoded.config)
                 log.info(
-                    "ConfigStatus device=%s mgi=%s fan=%s mode=%s",
+                    "ConfigStatus device=%s mgi=%s hyst=%s/%s alarm=%s fan=%s mode=%s",
                     device_id,
                     decoded.config.mgi,
+                    decoded.config.hyst_lo,
+                    decoded.config.hyst_hi,
+                    decoded.config.alarm_rf,
                     decoded.config.continuous_fan,
                     "mgi" if decoded.config.mgi_mode else "static",
                 )
@@ -234,10 +237,13 @@ class DeviceManager:
             merged = base.merge_patch(patch)
             frame = encode_config_write(merged, header)
             log.info(
-                "TX ConfigWrite device=%s header=%s mgi=%s fan=%s mode=%s yy=0x%02x frame=%s",
+                "TX ConfigWrite device=%s mgi=%s hyst=%s/%s alarm=%s fan=%s mode=%s "
+                "yy=0x%02x frame=%s",
                 device_id,
-                header.hex(" "),
                 merged.mgi,
+                merged.hyst_lo,
+                merged.hyst_hi,
+                merged.alarm_rf,
                 merged.continuous_fan,
                 "mgi" if merged.mgi_mode else "static",
                 frame[17] if len(frame) > 17 else -1,

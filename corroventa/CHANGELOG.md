@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.10
+
+- Report alarm/hyst/static RF as sensors; log alarm+hyst on ConfigStatus/TX
+
 ## 0.2.9
 
 - Round RH/temp to 1 decimal in MQTT/HA (avoids 62.299999…)

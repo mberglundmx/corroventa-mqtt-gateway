@@ -132,11 +132,11 @@ class HaMqtt:
             "name": f"Corroventa {device_id}",
             "manufacturer": "Corroventa",
             "model": self.settings.device_model,
-            "sw_version": "gateway-0.2.9",
+            "sw_version": "gateway-0.2.10",
         }
         origin = {
             "name": "Corroventa MQTT Gateway",
-            "sw_version": "0.2.9",
+            "sw_version": "0.2.10",
             "support_url": "https://github.com/mberglundmx/corroventa-mqtt-gateway",
         }
 
@@ -189,6 +189,50 @@ class HaMqtt:
                 "value_template": "{{ 'ON' if value_json.continuous_fan else 'OFF' }}",
                 "payload_on": "ON",
                 "payload_off": "OFF",
+            },
+        )
+        pub(
+            "sensor",
+            "alarm_rf_reported",
+            {
+                "name": "Alarm RF reported",
+                "state_topic": cfg,
+                "value_template": "{{ value_json.alarm_rf }}",
+                "unit_of_measurement": "%",
+                "state_class": "measurement",
+            },
+        )
+        pub(
+            "sensor",
+            "hyst_lo_reported",
+            {
+                "name": "Hysteresis low reported",
+                "state_topic": cfg,
+                "value_template": "{{ value_json.hyst_lo }}",
+                "unit_of_measurement": "%",
+                "state_class": "measurement",
+            },
+        )
+        pub(
+            "sensor",
+            "hyst_hi_reported",
+            {
+                "name": "Hysteresis high reported",
+                "state_topic": cfg,
+                "value_template": "{{ value_json.hyst_hi }}",
+                "unit_of_measurement": "%",
+                "state_class": "measurement",
+            },
+        )
+        pub(
+            "sensor",
+            "static_rf_reported",
+            {
+                "name": "Static RF reported",
+                "state_topic": cfg,
+                "value_template": "{{ value_json.static_rf }}",
+                "unit_of_measurement": "%",
+                "state_class": "measurement",
             },
         )
 
