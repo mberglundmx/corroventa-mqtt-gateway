@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.5
+
+- Service days: uint16 LE at Telemetry `[23:25]` (was low byte only → e.g. 106 instead of 362)
+
 ## 0.2.4
 
 - Reported config as HA sensors (MGI/mode/fan) alongside controls

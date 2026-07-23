@@ -90,7 +90,7 @@ int run_decode_fixture_tests() {
       EXPECT_NEAR(p->temperature_c, 18.2F, 0.05F);
       EXPECT(p->fan_running);
       EXPECT(p->dehumidifying);
-      EXPECT(p->service_days == 0x6B);
+      EXPECT(p->service_days == 363);  // 0x016B LE at [23:25]
     }
   }
 

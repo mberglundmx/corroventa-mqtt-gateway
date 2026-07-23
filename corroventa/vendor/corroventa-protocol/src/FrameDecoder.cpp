@@ -119,7 +119,7 @@ DecodeResult decodeInternal(ByteSpan data) {
       p.temperature_c = static_cast<float>(readU16Le(frame, 14)) / 10.0F;
       p.fan_running = frame[16] == 0x01;
       p.dehumidifying = frame[17] == 0x01;
-      p.service_days = frame[23];
+      p.service_days = readU16Le(frame, 23);
       p.year = readU16Le(frame, 25);
       p.month = frame[27];
       p.day = frame[28];

@@ -48,7 +48,7 @@ struct TelemetryView {
   float temperature_c = 0;
   bool fan_running = false;
   bool dehumidifying = false;
-  std::uint8_t service_days = 0;
+  std::uint16_t service_days = 0;
   std::uint16_t year = 0;
   std::uint8_t month = 0;
   std::uint8_t day = 0;
