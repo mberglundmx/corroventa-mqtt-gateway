@@ -4,56 +4,29 @@ import time
 from typing import Any, Iterator, Optional
 
 from .frame import RadioFrame, now_frame
-from .manchester import SYNC, extract_frames
+from .manchester import SYNC
 from .phy import PhyConfig
 from .radio import configure_rx, idle_device, open_device
 
-# Known Corroventa length bytes (for body-only FIFO recovery).
 _KNOWN_L = frozenset({0x07, 0x0B, 0x0E, 0x16, 0x1D, 0x22, 0x37})
 
 
 def frames_from_hw_fifo(raw: bytes) -> list[bytes]:
-    """Rebuild logical frames (sync‖L‖payload) from HW FIFO after sync strip.
+    """Rebuild logical frames from VLEN+HW-CRC FIFO.
 
-    FIFO usually contains L‖payload‖CRC (CRC-check off). Trailer is dropped by
-    length — no software CRC.
+    CC1111 VLEN consumes the length byte and CRC; FIFO is payload only.
+    Logical frame = sync ‖ len(raw) ‖ raw.
     """
-    out: list[bytes] = []
     if not raw:
-        return out
-
-    length = raw[0]
-    body = 1 + length
-    # Prefer body without air CRC trailer when present.
-    if body + 2 <= len(raw) and length in _KNOWN_L:
-        out.append(SYNC + raw[:body])
-    elif body <= len(raw) and length in _KNOWN_L:
-        out.append(SYNC + raw[:body])
-
-    blob = raw
-    i = 0
-    while True:
-        j = blob.find(SYNC, i)
-        if j < 0:
-            break
-        if j + 5 > len(blob):
-            break
-        length = blob[j + 4]
-        logical = 5 + length
-        on_air = 7 + length
-        if j + on_air <= len(blob):
-            out.append(blob[j : j + logical])
-            i = j + on_air
-        elif j + logical <= len(blob):
-            out.append(blob[j : j + logical])
-            i = j + logical
-        else:
-            i = j + 4
-    return out
+        return []
+    length = len(raw)
+    if length not in _KNOWN_L:
+        return []
+    return [SYNC + bytes([length]) + raw]
 
 
 class YardStickReceiver:
-    """HW Manchester frame source — yields logical frames (no CRC)."""
+    """HW Manchester + VLEN + HW CRC — yields logical frames (sync‖L‖payload)."""
 
     def __init__(
         self,
@@ -93,10 +66,7 @@ class YardStickReceiver:
             return []
         if not pkt:
             return []
-        frames = frames_from_hw_fifo(bytes(pkt))
-        if not frames:
-            frames = extract_frames(bytes(pkt))
-        return [now_frame(fr) for fr in frames]
+        return [now_frame(fr) for fr in frames_from_hw_fifo(bytes(pkt))]
 
     def frames(self, seconds: float) -> Iterator[RadioFrame]:
         end = time.time() + seconds

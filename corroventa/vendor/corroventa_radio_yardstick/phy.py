@@ -12,5 +12,5 @@ class PhyConfig:
     chip_rate: int = 38_400
     deviation_hz: int = 19_200
     channel_bw_hz: int = 135_000
-    # Max fixed RX length (host parses by L; air CRC trailer may follow in buffer).
-    flen: int = 64
+    # VLEN max payload (Corroventa Statistics L=0x37); radio rejects longer.
+    vlen_max: int = 0x37

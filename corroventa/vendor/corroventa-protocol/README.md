@@ -22,15 +22,14 @@ Documented here; implemented with HW flags in the Yard Stick transport.
 | Deviation | 19.2 kHz (TX and RX) |
 | Preamble / sync | AA… + `D391` ×2 |
 | Length mode | FLEN (variable Corroventa `L` parsed in host) |
-| CRC | **HW on TX** (`setEnablePktCRC`); covers `L ‖ payload` |
+| CRC | **HW** TX and RX (`setEnablePktCRC`) over `L ‖ payload` |
+| RX length | **VLEN** — radio uses `L`, checks CRC; FIFO = payload only |
 
 On the air: `preamble ‖ sync ‖ L ‖ payload ‖ CRC16`.  
 Logical (this library): `D3 91 D3 91 ‖ L ‖ payload` (`total = 5 + L`).
 
 TX: transport sends `L ‖ payload` in the FIFO; radio appends CRC.  
-RX: variable-length frames are parsed by `L` from an FLEN buffer; the 2-byte
-air trailer is dropped by length (HW CRC-check stays off so a max-FLEN parse
-still works). No software CRC algorithm.
+RX: VLEN + HW CRC; host prepends sync and restores `L` from `len(FIFO)`.
 
 ## Logical frame
 

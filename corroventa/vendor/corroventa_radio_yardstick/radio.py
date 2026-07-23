@@ -6,11 +6,11 @@ from .phy import PhyConfig
 
 
 def configure_rx(d: Any, phy: PhyConfig) -> None:
-    """HW Manchester RX; FLEN buffer; CRC-check off so trailer stays for strip-by-L.
+    """HW Manchester RX with VLEN + HW CRC.
 
-    Variable Corroventa lengths cannot use HW CRC-check with a single max FLEN
-    (radio would wait for FLEN bytes). Trailer is discarded by length in the
-    host — no software CRC algorithm.
+    After sync, CC1111 reads length byte L, then L payload bytes, checks CRC.
+    FIFO delivers **payload only** (L is consumed by the radio; CRC stripped).
+    Host rebuilds logical frame as sync ‖ L ‖ payload with L = len(FIFO).
     """
     from rflib import MOD_2FSK, SYNCM_CARRIER_30_of_32
 
@@ -21,10 +21,12 @@ def configure_rx(d: Any, phy: PhyConfig) -> None:
     d.setMdmDeviatn(phy.deviation_hz)
     d.setMdmDRate(phy.chip_rate)
     d.setEnableMdmManchester(True)
-    d.setEnablePktCRC(False)
     d.setMdmSyncWord(0xD391)
     d.setMdmSyncMode(SYNCM_CARRIER_30_of_32)
-    d.makePktFLEN(phy.flen)
+    d.setEnablePktAppendStatus(False)
+    # Length mode and CRC both touch PKTCTRL0 — set VLEN then re-assert CRC.
+    d.makePktVLEN(phy.vlen_max)
+    d.setEnablePktCRC(True)
     d.setModeRX()
 
 
