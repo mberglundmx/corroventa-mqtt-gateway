@@ -28,7 +28,7 @@ void usage(const char* argv0) {
       << " config-write [--mgi N] [--hyst-lo N] [--hyst-hi N] [--rf N] [--alarm N]\n"
       << "              [--fan on|off] [--mode mgi|static]\n"
       << "  " << argv0 << " keepalive [--seq HEX]\n"
-      << "\nPrints one TRUE-phase frame as hex (sync..CRC) on stdout.\n";
+      << "\nPrints one logical frame as hex (sync‖L‖payload) on stdout.\n";
 }
 
 std::int8_t parseI8(const std::string& s) {

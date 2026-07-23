@@ -16,7 +16,6 @@ Home Assistant via MQTT discovery entities.
 
 | Option | Default | Meaning |
 |--------|---------|---------|
-| `radio_mode` | `hw` | `hw` or `soft` Manchester path |
 | `radio_enabled` | `true` | Set `false` for MQTT-only debugging |
 | `tx_repeats` | `8` | ConfigWrite air repeats |
 | `topic_prefix` | `corroventa` | MQTT root |

@@ -27,7 +27,7 @@ int run_encode_config_write_tests() {
 
   const std::uint8_t expected[] = {
       0xD3, 0x91, 0xD3, 0x91, 0x0E, 0xF5, 0x01, 0x40, 0x01, 0x82, 0x08,
-      0x22, 0xFE, 0x02, 0xF9, 0x41, 0x0A, 0x00, 0x01, 0x69, 0x0C};
+      0x22, 0xFE, 0x02, 0xF9, 0x41, 0x0A, 0x00, 0x01};
   EXPECT(frame.size() == sizeof(expected));
   if (frame.size() == sizeof(expected)) {
     EXPECT(std::memcmp(frame.data(), expected, sizeof(expected)) == 0);
@@ -43,7 +43,6 @@ int run_encode_config_write_tests() {
     EXPECT(decoded.config.mgi == -7);
   }
 
-  // Keepalive encode round-trip
   KeepalivePacket ka;
   ka.seq = 0x1E;
   const auto ka_frame = encoder.encode(ka);

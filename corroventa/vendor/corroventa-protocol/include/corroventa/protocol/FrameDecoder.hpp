@@ -6,6 +6,7 @@
 
 #include <optional>
 #include <string>
+#include <variant>
 
 namespace corroventa::protocol {
 
@@ -13,7 +14,6 @@ enum class DecodeError {
   TooShort,
   BadSync,
   Truncated,
-  BadCrc,
 };
 
 [[nodiscard]] constexpr const char* toString(DecodeError error) noexcept {
@@ -24,8 +24,6 @@ enum class DecodeError {
       return "BadSync";
     case DecodeError::Truncated:
       return "Truncated";
-    case DecodeError::BadCrc:
-      return "BadCrc";
   }
   return "Unknown";
 }
@@ -34,7 +32,6 @@ struct DecodeSuccess {
   Packet packet;
   PacketKind kind = PacketKind::Unknown;
   std::size_t frame_size = 0;
-  bool crc_ok = true;
 };
 
 struct DecodeFailure {
@@ -46,10 +43,11 @@ using DecodeResult = std::variant<DecodeSuccess, DecodeFailure>;
 
 class FrameDecoder {
  public:
-  /// Decode one frame starting at data[0]. Requires full frame including CRC.
+  /// Decode one logical frame: sync ‖ L ‖ payload.
+  /// On-air captures that still include a 2-byte CRC trailer are accepted; trailer ignored.
   [[nodiscard]] DecodeResult decode(ByteSpan data) const;
 
-  /// Like decode(), but UnknownPacket is returned for unrecognized L (still CRC-checked).
+  /// Like decode(), but UnknownPacket is returned for unrecognized L.
   [[nodiscard]] DecodeResult decodeAllowUnknown(ByteSpan data) const;
 };
 

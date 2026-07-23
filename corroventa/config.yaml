@@ -24,7 +24,6 @@ map:
   - addon_config:rw
 options:
   log_level: info
-  radio_mode: hw
   radio_enabled: true
   discovery_prefix: homeassistant
   topic_prefix: corroventa
@@ -32,7 +31,6 @@ options:
   tx_repeats: 8
 schema:
   log_level: list(debug|info|warning|error)
-  radio_mode: list(hw|soft)
   radio_enabled: bool
   discovery_prefix: str
   topic_prefix: str

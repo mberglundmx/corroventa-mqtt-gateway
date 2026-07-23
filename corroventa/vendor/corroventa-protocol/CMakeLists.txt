@@ -9,7 +9,6 @@ option(CORROVENTA_PROTOCOL_BUILD_TESTS "Build protocol unit/replay tests" ON)
 option(CORROVENTA_PROTOCOL_BUILD_PYTHON "Build pybind11 module corroventa_protocol" OFF)
 
 add_library(corroventa_protocol
-  src/Crc16.cpp
   src/FrameDecoder.cpp
   src/FrameEncoder.cpp
 )

@@ -1,6 +1,6 @@
-"""Yard Stick One transport for Corroventa (opaque TRUE-phase frames).
+"""Yard Stick One transport for Corroventa (opaque logical frames).
 
-Receives/transmits sync+length+payload+CRC bytes only — no protocol semantics.
+Air path: CC1111 HW Manchester + HW CRC on TX.
 """
 
 from .phy import PhyConfig

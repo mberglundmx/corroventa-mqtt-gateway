@@ -87,7 +87,8 @@ struct UnknownPacket {
   static constexpr PacketKind kind = PacketKind::Unknown;
 
   std::uint8_t length_byte = 0;
-  std::vector<std::uint8_t> payload;  // bytes after length, before CRC
+  std::vector<std::uint8_t> payload;  // bytes after length byte
+
 };
 
 }  // namespace corroventa::protocol

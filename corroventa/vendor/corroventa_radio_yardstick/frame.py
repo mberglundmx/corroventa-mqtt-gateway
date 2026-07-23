@@ -6,7 +6,7 @@ import time
 
 @dataclass(frozen=True)
 class RadioFrame:
-    """Opaque on-air frame bytes (TRUE packing: sync + L + payload + CRC)."""
+    """Opaque logical frame: sync + L + payload (no CRC)."""
 
     data: bytes
     timestamp: float

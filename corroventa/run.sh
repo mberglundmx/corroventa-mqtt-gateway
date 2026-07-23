@@ -32,7 +32,6 @@ if bashio::config.has_value "mqtt_client_id"; then
 fi
 
 export LOG_LEVEL="$(bashio::config "log_level")"
-export RADIO_MODE="$(bashio::config "radio_mode")"
 export RADIO_ENABLED="$(bashio::config "radio_enabled")"
 export DISCOVERY_PREFIX="$(bashio::config "discovery_prefix")"
 export TOPIC_PREFIX="$(bashio::config "topic_prefix")"

@@ -143,12 +143,21 @@ int run_decode_fixture_tests() {
   }
 
   {
+    // Legacy on-air capture with CRC trailer still decodes (trailer ignored).
     auto frame = loadFixture("config_write_mgi_m7.hex");
-    frame.back() ^= 0x01;
+    frame.push_back(0x69);
+    frame.push_back(0x0C);
+    const auto result = decoder.decode(ByteSpan(frame.data(), frame.size()));
+    EXPECT(as<ConfigWritePacket>(result) != nullptr);
+  }
+
+  {
+    auto frame = loadFixture("config_write_mgi_m7.hex");
+    frame.resize(frame.size() - 1);
     const auto result = decoder.decode(ByteSpan(frame.data(), frame.size()));
     EXPECT(std::holds_alternative<DecodeFailure>(result));
     if (std::holds_alternative<DecodeFailure>(result)) {
-      EXPECT(std::get<DecodeFailure>(result).error == DecodeError::BadCrc);
+      EXPECT(std::get<DecodeFailure>(result).error == DecodeError::Truncated);
     }
   }
 

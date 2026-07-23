@@ -30,7 +30,7 @@ std::vector<std::uint8_t> parseHexLine(const std::string& line) {
 
 void printPacket(const corroventa::protocol::DecodeSuccess& ok) {
   using namespace corroventa::protocol;
-  std::cout << toString(ok.kind) << "  bytes=" << ok.frame_size << "  crc=ok";
+  std::cout << toString(ok.kind) << "  bytes=" << ok.frame_size;
   std::visit(
       [](const auto& p) {
         using T = std::decay_t<decltype(p)>;

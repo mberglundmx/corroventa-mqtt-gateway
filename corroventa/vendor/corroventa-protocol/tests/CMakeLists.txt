@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.16)
 
 add_executable(corroventa_protocol_tests
   test_main.cpp
-  test_crc16.cpp
   test_decode_fixtures.cpp
   test_encode_config_write.cpp
 )

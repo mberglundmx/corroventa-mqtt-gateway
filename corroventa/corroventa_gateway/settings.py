@@ -19,7 +19,6 @@ class Settings:
     mqtt_password: str | None = None
     mqtt_client_id: str = "corroventa-gateway"
     log_level: str = "info"
-    radio_mode: str = "hw"
     radio_enabled: bool = True
     discovery_prefix: str = "homeassistant"
     topic_prefix: str = "corroventa"
@@ -35,7 +34,6 @@ class Settings:
             mqtt_password=os.environ.get("MQTT_PASSWORD") or None,
             mqtt_client_id=os.environ.get("MQTT_CLIENT_ID", "corroventa-gateway"),
             log_level=os.environ.get("LOG_LEVEL", "info").lower(),
-            radio_mode=os.environ.get("RADIO_MODE", "hw").lower(),
             radio_enabled=_env_bool("RADIO_ENABLED", True),
             discovery_prefix=os.environ.get("DISCOVERY_PREFIX", "homeassistant"),
             topic_prefix=os.environ.get("TOPIC_PREFIX", "corroventa"),

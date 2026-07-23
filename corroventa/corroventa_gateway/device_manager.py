@@ -14,16 +14,14 @@ log = logging.getLogger(__name__)
 
 TransmitFn = Callable[[bytes], None]
 
-# Shared across HV Keepalive / Poll / ConfigWrite on this air link:
-#   Keepalive: F5 01 40 01 82 | 01 | seq
-#   Poll:      F5 01 40 01 82 | 10 20 | …
-#   ConfigWrite: F5 01 40 01 82 | 08 22 | config…
-HV_HEADER_PREFIX_LEN = 5
+# Hypothesis: payload header (see corroventa-engineering/protocol/addressing.md)
+FAMILY_PAIRED = 0xF5
+HV_FLAGS_DEFAULT = 0x82
+CONFIG_WRITE_N = 0x08
+CONFIG_WRITE_CMD = 0x22
 
-# ConfigWrite-only trailing bytes after the shared HV prefix.
-# Hypothesis (medium): class / command discriminator for ConfigWrite — not length
-# (length is already L=0x0E). Semantics still unknown.
-CONFIG_WRITE_CLASS_SUFFIX = bytes.fromhex("08 22")
+_HV_KINDS = frozenset({"keepalive", "poll", "config_write"})
+_CTR_KINDS = frozenset({"config_status", "telemetry", "statistics", "pairing_beacon"})
 
 
 @dataclass
@@ -32,13 +30,13 @@ class DeviceState:
 
     device_id: int
     config: ConfigBlock | None = None
-    # Full ConfigWrite [5:12] if heard on air; else composed from HV prefix + class suffix.
     config_write_header: bytes | None = None
     link_blob: bytes | None = None
+    short_addr: int | None = None  # CTR RF short address
 
 
 class DeviceManager:
-    """Tracks CTR/HV identity/state and routes MQTT commands to ConfigWrite frames."""
+    """Tracks CTR/HV short addresses + state; routes MQTT → ConfigWrite."""
 
     def __init__(self, mqtt: HaMqtt, transmit: TransmitFn, tx_repeats: int = 8) -> None:
         self._mqtt = mqtt
@@ -47,49 +45,103 @@ class DeviceManager:
         self._lock = threading.Lock()
         self._devices: dict[int, DeviceState] = {}
         self._primary_device_id: int | None = None
-        # Learned from Keepalive/Poll (and ConfigWrite): F5 01 40 01 82 …
-        self._hv_header_prefix: bytes | None = None
+        self._hv_short_addr: int | None = None
+        self._hv_flags: int = HV_FLAGS_DEFAULT
+        self._pending_ctr_addr: int | None = None
         self._orphan_write_header: bytes | None = None
 
     @property
     def primary_device_id(self) -> int | None:
         return self._primary_device_id
 
+    @property
+    def hv_short_addr(self) -> int | None:
+        return self._hv_short_addr
+
     def _device(self, device_id: int) -> DeviceState:
         if device_id not in self._devices:
             self._devices[device_id] = DeviceState(device_id=device_id)
         return self._devices[device_id]
 
-    def _learn_hv_prefix(self, raw: bytes, source: str) -> None:
-        if len(raw) < 5 + HV_HEADER_PREFIX_LEN:
+    def _learn_short_addrs(self, raw: bytes, kind: str) -> None:
+        if len(raw) < 10:
             return
-        prefix = raw[5 : 5 + HV_HEADER_PREFIX_LEN]
-        if self._hv_header_prefix == prefix:
+        family, src, dst, flags = raw[5], raw[7], raw[8], raw[9]
+        if family not in (FAMILY_PAIRED, 0xFF):
             return
-        self._hv_header_prefix = prefix
-        log.info("Learned HV header prefix from %s: %s", source, prefix.hex(" "))
-        # Refresh composed headers for devices that only had a synthesized one.
-        composed = self._compose_config_write_header()
-        if composed is None:
-            return
-        for dev in self._devices.values():
-            if dev.config_write_header is None:
-                dev.config_write_header = composed
 
-    def _compose_config_write_header(self) -> bytes | None:
-        if self._hv_header_prefix is None:
+        if kind in _HV_KINDS:
+            hv, ctr = src, dst
+            self._hv_flags = flags
+        elif kind in _CTR_KINDS:
+            ctr, hv = src, dst
+        else:
+            return
+
+        if self._hv_short_addr != hv:
+            self._hv_short_addr = hv
+            log.info("Learned HV short addr 0x%02x (from %s)", hv, kind)
+
+        if self._primary_device_id is not None:
+            dev = self._device(self._primary_device_id)
+            if dev.short_addr != ctr:
+                dev.short_addr = ctr
+                log.info(
+                    "Learned CTR short addr 0x%02x for device %s (from %s)",
+                    ctr,
+                    self._primary_device_id,
+                    kind,
+                )
+        elif self._pending_ctr_addr != ctr:
+            self._pending_ctr_addr = ctr
+            log.info("Pending CTR short addr 0x%02x (from %s, no UI id yet)", ctr, kind)
+
+        self._refresh_composed_headers()
+
+    def _compose_config_write_header(self, ctr_addr: int | None = None) -> bytes | None:
+        if self._hv_short_addr is None:
             return None
-        return self._hv_header_prefix + CONFIG_WRITE_CLASS_SUFFIX
+        ctr = ctr_addr
+        if ctr is None and self._primary_device_id is not None:
+            ctr = self._device(self._primary_device_id).short_addr
+        if ctr is None:
+            ctr = self._pending_ctr_addr
+        if ctr is None:
+            return None
+        return bytes(
+            [
+                FAMILY_PAIRED,
+                0x01,
+                self._hv_short_addr & 0xFF,
+                ctr & 0xFF,
+                self._hv_flags & 0xFF,
+                CONFIG_WRITE_N,
+                CONFIG_WRITE_CMD,
+            ]
+        )
+
+    def _refresh_composed_headers(self) -> None:
+        for dev in self._devices.values():
+            if dev.config_write_header is not None:
+                continue
+            composed = self._compose_config_write_header(dev.short_addr)
+            if composed is not None:
+                dev.config_write_header = composed
 
     def handle_frame(self, decoded: DecodedFrame) -> None:
         with self._lock:
             raw = bytes(decoded.raw) if decoded.raw else b""
 
-            if decoded.kind in ("keepalive", "poll") and raw:
-                self._learn_hv_prefix(raw, decoded.kind)
+            if raw:
+                self._learn_short_addrs(raw, decoded.kind)
 
             if decoded.device_id is not None:
                 self._primary_device_id = int(decoded.device_id)
+                if self._pending_ctr_addr is not None:
+                    self._device(self._primary_device_id).short_addr = self._pending_ctr_addr
+                    self._pending_ctr_addr = None
+                    self._refresh_composed_headers()
+
             device_id = (
                 int(decoded.device_id)
                 if decoded.device_id is not None
@@ -101,8 +153,11 @@ class DeviceManager:
                 if header is None and len(raw) >= 12:
                     header = raw[5:12]
                 if header is not None:
-                    if len(header) >= HV_HEADER_PREFIX_LEN:
-                        self._hv_header_prefix = header[:HV_HEADER_PREFIX_LEN]
+                    if len(header) >= 5:
+                        self._hv_short_addr = header[2]
+                        self._hv_flags = header[4]
+                        if device_id is not None:
+                            self._device(device_id).short_addr = header[3]
                     if device_id is not None:
                         self._device(device_id).config_write_header = header
                         log.info(
@@ -124,11 +179,11 @@ class DeviceManager:
                     if self._orphan_write_header is not None:
                         dev.config_write_header = self._orphan_write_header
                     else:
-                        composed = self._compose_config_write_header()
+                        composed = self._compose_config_write_header(dev.short_addr)
                         if composed is not None:
                             dev.config_write_header = composed
                             log.info(
-                                "Composed ConfigWrite header for device %s from HV prefix: %s",
+                                "Composed ConfigWrite header for device %s: %s",
                                 device_id,
                                 composed.hex(" "),
                             )
@@ -148,11 +203,11 @@ class DeviceManager:
     def handle_config_command(self, device_id: int, patch: dict[str, Any]) -> None:
         with self._lock:
             dev = self._device(device_id)
-            header = dev.config_write_header or self._compose_config_write_header()
+            header = dev.config_write_header or self._compose_config_write_header(dev.short_addr)
             if header is None:
                 log.error(
-                    "No ConfigWrite header for device %s — need HV Keepalive/Poll "
-                    "(prefix) or a ConfigWrite on air",
+                    "No ConfigWrite header for device %s — need air traffic to learn "
+                    "HV/CTR short addresses (or a ConfigWrite on air)",
                     device_id,
                 )
                 return
@@ -163,8 +218,10 @@ class DeviceManager:
             merged = base.merge_patch(patch)
             frame = encode_config_write(merged, header)
             log.info(
-                "TX ConfigWrite device=%s header=%s mgi=%s",
+                "TX ConfigWrite device=%s hv=0x%02x ctr=0x%02x header=%s mgi=%s",
                 device_id,
+                header[2],
+                header[3],
                 header.hex(" "),
                 merged.mgi,
             )

@@ -1,7 +1,6 @@
 #include "corroventa/protocol/FrameDecoder.hpp"
 
 #include "corroventa/protocol/ConfigBlock.hpp"
-#include "corroventa/protocol/Crc16.hpp"
 #include "corroventa/protocol/Sync.hpp"
 
 #include <cstring>
@@ -44,7 +43,7 @@ DecodeResult fail(DecodeError error, std::size_t consumed = 0) {
 }
 
 DecodeResult decodeInternal(ByteSpan data) {
-  if (data.size() < 7) {
+  if (data.size() < 5) {
     return fail(DecodeError::TooShort);
   }
   if (!hasSync(data)) {
@@ -57,22 +56,16 @@ DecodeResult decodeInternal(ByteSpan data) {
     return fail(DecodeError::Truncated, data.size());
   }
 
-  const ByteSpan crc_region = data.subspan(4, static_cast<std::size_t>(1) + length_byte);
-  const std::uint16_t expected = crc16Cms(crc_region);
-  const std::uint16_t actual =
-      static_cast<std::uint16_t>((static_cast<std::uint16_t>(data[5 + length_byte]) << 8) |
-                                 data[6 + length_byte]);
-  if (actual != expected) {
-    return fail(DecodeError::BadCrc, total);
-  }
-
   const ByteSpan frame = data.subspan(0, total);
-  const PacketKind kind = packetKindFromLength(length_byte);
+  PacketKind kind = packetKindFromFrame(frame);
+  // Sanity: known kinds must carry their usual L (framing still uses L).
+  if (kind != PacketKind::Unknown && length_byte != expectedLengthByte(kind)) {
+    kind = PacketKind::Unknown;
+  }
 
   DecodeSuccess ok;
   ok.kind = kind;
   ok.frame_size = total;
-  ok.crc_ok = true;
 
   switch (kind) {
     case PacketKind::Keepalive: {

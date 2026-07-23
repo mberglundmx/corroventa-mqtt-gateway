@@ -11,10 +11,9 @@ FrameCallback = Callable[[bytes], None]
 
 
 class RadioBridge:
-    """Yard Stick One RX/TX using vendored corroventa_radio_yardstick."""
+    """Yard Stick One RX/TX using vendored corroventa_radio_yardstick (HW only)."""
 
-    def __init__(self, mode: str = "hw", enabled: bool = True) -> None:
-        self.mode = mode
+    def __init__(self, enabled: bool = True) -> None:
         self.enabled = enabled
         self._device = None
         self._receiver = None
@@ -32,11 +31,11 @@ class RadioBridge:
         from corroventa_radio_yardstick.receiver import YardStickReceiver
 
         self._device = open_device(0)
-        self._receiver = YardStickReceiver(mode=self.mode, device=self._device)
+        self._receiver = YardStickReceiver(device=self._device)
         self._receiver.open()
         self._rx = threading.Thread(target=self._rx_loop, name="ys1-rx", daemon=True)
         self._rx.start()
-        log.info("Radio RX started mode=%s", self.mode)
+        log.info("Radio RX started (HW Manchester)")
 
     def stop(self) -> None:
         self._stop.set()
@@ -60,11 +59,11 @@ class RadioBridge:
             from corroventa_radio_yardstick.transmitter import YardStickTransmitter
 
             idle_device(self._device)
-            tx = YardStickTransmitter(mode=self.mode, hw_crc=True, device=self._device)
+            tx = YardStickTransmitter(device=self._device)
             tx.open()
             tx.transmit(frame, repeats=repeats, gap_s=gap_s)
             idle_device(self._device)
-            self._receiver = YardStickReceiver(mode=self.mode, device=self._device)
+            self._receiver = YardStickReceiver(device=self._device)
             self._receiver.open()
 
     def _rx_loop(self) -> None:

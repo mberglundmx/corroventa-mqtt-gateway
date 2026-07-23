@@ -1,7 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "corroventa/protocol/Crc16.hpp"
 #include "corroventa/protocol/FrameDecoder.hpp"
 #include "corroventa/protocol/FrameEncoder.hpp"
 #include "corroventa/protocol/Packet.hpp"
@@ -185,15 +184,10 @@ std::optional<DecodedFrame> decode_frame(py::bytes data) {
   return out;
 }
 
-std::uint16_t crc16_cms_py(py::bytes data) {
-  const std::vector<std::uint8_t> bytes = asBytes(data);
-  return crc16Cms(ByteSpan(bytes.data(), bytes.size()));
-}
-
 }  // namespace
 
 PYBIND11_MODULE(corroventa_protocol, m) {
-  m.doc() = "Python bindings for corroventa-protocol (C++17 TRUE-phase codec)";
+  m.doc() = "Python bindings for corroventa-protocol (C++17 codec)";
 
   py::class_<ConfigBlock>(m, "ConfigBlock")
       .def(py::init<>())
@@ -295,11 +289,10 @@ PYBIND11_MODULE(corroventa_protocol, m) {
         return hex;
       });
 
-  m.def("decode_frame", &decode_frame, py::arg("data"), "Decode one TRUE-phase frame; None if invalid");
+  m.def("decode_frame", &decode_frame, py::arg("data"), "Decode one logical frame (sync‖L‖payload); None if invalid");
   m.def("encode_config_write",
         &encode_config_write,
         py::arg("config"),
         py::arg("header"),
-        "Encode ConfigWrite + CRC (header = 7 pair-specific bytes from Device Manager)");
-  m.def("crc16_cms", &crc16_cms_py, py::arg("data"), "CRC-16/CMS over bytes");
+        "Encode ConfigWrite sync‖L‖payload (header = 7 pair-specific bytes; CRC is HW on air)");
 }

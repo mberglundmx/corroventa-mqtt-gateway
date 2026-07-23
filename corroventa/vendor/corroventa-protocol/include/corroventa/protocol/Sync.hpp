@@ -5,12 +5,12 @@
 
 namespace corroventa::protocol {
 
-/// On-air sync word after Manchester demod (TRUE packing).
+/// On-air sync word after Manchester demod.
 inline constexpr std::array<std::uint8_t, 4> kSyncWord{{0xD3, 0x91, 0xD3, 0x91}};
 
-/// total_length = 4 (sync) + 1 (L) + L + 2 (CRC) = 7 + L
+/// Logical frame length: sync(4) + L(1) + payload(L). CRC is air/HW only.
 inline constexpr std::size_t frameTotalLength(std::uint8_t length_byte) noexcept {
-  return static_cast<std::size_t>(7) + length_byte;
+  return static_cast<std::size_t>(5) + length_byte;
 }
 
 }  // namespace corroventa::protocol
