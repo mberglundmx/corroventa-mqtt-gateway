@@ -211,6 +211,10 @@ class DeviceManager:
                 self._mqtt.publish_telemetry(device_id, decoded.telemetry.to_public_dict())
             elif decoded.kind == "statistics" and decoded.statistics:
                 self._mqtt.publish_statistics(device_id, decoded.statistics.to_public_dict())
+            elif decoded.kind == "telemetry":
+                log.warning("Telemetry frame without payload device=%s", device_id)
+            elif decoded.kind == "unknown":
+                log.debug("Ignoring unknown frame L=0x%02x", raw[4] if len(raw) > 4 else -1)
 
     def handle_config_command(self, device_id: int, patch: dict[str, Any]) -> None:
         with self._lock:

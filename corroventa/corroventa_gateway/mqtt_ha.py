@@ -70,17 +70,27 @@ class HaMqtt:
     def publish_telemetry(self, device_id: int, payload: dict[str, Any]) -> None:
         self._ensure_discovery(device_id)
         topic = f"{self.device_base(device_id)}/telemetry"
-        self._client.publish(topic, json.dumps(payload), retain=True, qos=1)
+        body = json.dumps(payload)
+        self._client.publish(topic, body, retain=True, qos=1)
+        log.info(
+            "Published telemetry device=%s T=%s RH=%s fan=%s",
+            device_id,
+            payload.get("temperature_c"),
+            payload.get("relative_humidity_percent"),
+            payload.get("fan_running"),
+        )
 
     def publish_config(self, device_id: int, config: ConfigBlock) -> None:
         self._ensure_discovery(device_id)
         topic = f"{self.device_base(device_id)}/config"
-        self._client.publish(topic, json.dumps(config.to_public_dict()), retain=True, qos=1)
+        payload = dict(config.to_public_dict())
+        self._client.publish(topic, json.dumps(payload), retain=True, qos=1)
 
     def publish_statistics(self, device_id: int, payload: dict[str, Any]) -> None:
         self._ensure_discovery(device_id)
         topic = f"{self.device_base(device_id)}/statistics"
         self._client.publish(topic, json.dumps(payload), retain=True, qos=1)
+        log.info("Published statistics device=%s", device_id)
 
     def _on_connect(self, client: mqtt.Client, *_args: Any) -> None:
         log.info("MQTT connected")
@@ -122,11 +132,11 @@ class HaMqtt:
             "name": f"Corroventa {device_id}",
             "manufacturer": "Corroventa",
             "model": self.settings.device_model,
-            "sw_version": "gateway-0.2.3",
+            "sw_version": "gateway-0.2.4",
         }
         origin = {
             "name": "Corroventa MQTT Gateway",
-            "sw_version": "0.2.3",
+            "sw_version": "0.2.4",
             "support_url": "https://github.com/mberglundmx/corroventa-mqtt-gateway",
         }
 
@@ -150,6 +160,40 @@ class HaMqtt:
         cfg_set = f"{base}/config/set"
         stats = f"{base}/statistics"
 
+        # Reported config as sensors (Controls are number/switch; these show under Sensors).
+        pub(
+            "sensor",
+            "mgi_reported",
+            {
+                "name": "MGI reported",
+                "state_topic": cfg,
+                "value_template": "{{ value_json.mgi }}",
+                "unit_of_measurement": "%",
+                "state_class": "measurement",
+            },
+        )
+        pub(
+            "sensor",
+            "mode_reported",
+            {
+                "name": "Control mode reported",
+                "state_topic": cfg,
+                "value_template": "{{ value_json.mgi_mode }}",
+            },
+        )
+        pub(
+            "binary_sensor",
+            "continuous_fan_reported",
+            {
+                "name": "Continuous fan reported",
+                "state_topic": cfg,
+                "value_template": "{{ 'ON' if value_json.continuous_fan else 'OFF' }}",
+                "payload_on": "ON",
+                "payload_off": "OFF",
+            },
+        )
+
+        # Live CTR telemetry (empty until first Telemetry frame)
         pub(
             "sensor",
             "temperature",

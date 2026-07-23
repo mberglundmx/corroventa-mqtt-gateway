@@ -55,7 +55,12 @@ def run(settings: Settings | None = None) -> int:
         decoded = decode_frame(raw)
         if decoded is None:
             rx_fail += 1
-            log.debug("RX undecoded (%d B) %s", len(raw), raw[:16].hex(" "))
+            if rx_fail <= 5 or rx_fail % 50 == 0:
+                log.info(
+                    "RX undecoded (%d B) head=%s",
+                    len(raw),
+                    raw[:12].hex(" ") if raw else "-",
+                )
             return
         rx_ok += 1
         if decoded.kind not in seen_kinds:
@@ -66,13 +71,20 @@ def run(settings: Settings | None = None) -> int:
         manager.handle_frame(decoded)
         now = time.time()
         if now - last_rx_summary >= 60.0:
+            kinds = ",".join(sorted(seen_kinds)) or "-"
             log.info(
                 "RX summary: ok=%s fail=%s kinds=%s device_id=%s",
                 rx_ok,
                 rx_fail,
-                ",".join(sorted(seen_kinds)) or "-",
+                kinds,
                 manager.primary_device_id,
             )
+            if manager.primary_device_id is not None and "telemetry" not in seen_kinds:
+                log.warning(
+                    "Device %s known but no Telemetry yet — HA sensors "
+                    "(temp/RH/fan) stay empty until a Telemetry frame is decoded",
+                    manager.primary_device_id,
+                )
             last_rx_summary = now
             rx_ok = 0
             rx_fail = 0
