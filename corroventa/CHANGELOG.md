@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.9
+
+- Round RH/temp to 1 decimal in MQTT/HA (avoids 62.299999…)
+
 ## 0.2.8
 
 - Clearer select name **MGI / Static RF**; always re-publish MQTT discovery after upgrades

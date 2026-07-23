@@ -132,11 +132,11 @@ class HaMqtt:
             "name": f"Corroventa {device_id}",
             "manufacturer": "Corroventa",
             "model": self.settings.device_model,
-            "sw_version": "gateway-0.2.8",
+            "sw_version": "gateway-0.2.9",
         }
         origin = {
             "name": "Corroventa MQTT Gateway",
-            "sw_version": "0.2.8",
+            "sw_version": "0.2.9",
             "support_url": "https://github.com/mberglundmx/corroventa-mqtt-gateway",
         }
 
@@ -199,7 +199,7 @@ class HaMqtt:
             {
                 "name": "Temperature",
                 "state_topic": tel,
-                "value_template": "{{ value_json.temperature_c }}",
+                "value_template": "{{ value_json.temperature_c | round(1) }}",
                 "unit_of_measurement": "°C",
                 "device_class": "temperature",
                 "state_class": "measurement",
@@ -211,7 +211,7 @@ class HaMqtt:
             {
                 "name": "Humidity",
                 "state_topic": tel,
-                "value_template": "{{ value_json.relative_humidity_percent }}",
+                "value_template": "{{ value_json.relative_humidity_percent | round(1) }}",
                 "unit_of_measurement": "%",
                 "device_class": "humidity",
                 "state_class": "measurement",

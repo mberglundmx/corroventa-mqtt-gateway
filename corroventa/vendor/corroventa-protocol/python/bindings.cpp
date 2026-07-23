@@ -6,6 +6,7 @@
 #include "corroventa/protocol/Packet.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdint>
 #include <cstring>
@@ -58,8 +59,8 @@ struct TelemetryView {
 
   py::dict to_public_dict() const {
     py::dict d;
-    d["relative_humidity_percent"] = relative_humidity_percent;
-    d["temperature_c"] = temperature_c;
+    d["relative_humidity_percent"] = std::round(relative_humidity_percent * 10.0) / 10.0;
+    d["temperature_c"] = std::round(temperature_c * 10.0) / 10.0;
     d["fan_running"] = fan_running;
     d["dehumidifying"] = dehumidifying;
     d["service_days"] = service_days;
