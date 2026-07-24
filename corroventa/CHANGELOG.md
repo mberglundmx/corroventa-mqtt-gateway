@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.11
+
+- Coalesce concurrent config patches into one ConfigWrite
+- Wait for air quiet before TX; ignore ConfigStatus briefly after TX
+
 ## 0.2.10
 
 - Report alarm/hyst/static RF as sensors; log alarm+hyst on ConfigStatus/TX

@@ -36,6 +36,9 @@ class Settings:
     topic_prefix: str = "corroventa"
     device_model: str = "CTR300TT2"
     tx_repeats: int = 8
+    tx_quiet_s: float = 0.25
+    tx_coalesce_s: float = 0.2
+    tx_ignore_status_s: float = 1.5
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -52,4 +55,7 @@ class Settings:
             topic_prefix=os.environ.get("TOPIC_PREFIX", "corroventa"),
             device_model=os.environ.get("DEVICE_MODEL", "CTR300TT2"),
             tx_repeats=int(os.environ.get("TX_REPEATS", "8")),
+            tx_quiet_s=float(os.environ.get("TX_QUIET_S", "0.25")),
+            tx_coalesce_s=float(os.environ.get("TX_COALESCE_S", "0.2")),
+            tx_ignore_status_s=float(os.environ.get("TX_IGNORE_STATUS_S", "1.5")),
         )

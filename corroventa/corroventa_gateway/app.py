@@ -4,6 +4,7 @@ import logging
 import signal
 import sys
 import time
+from dataclasses import replace
 
 from corroventa_protocol import decode_frame
 
@@ -26,9 +27,13 @@ def run(settings: Settings | None = None) -> int:
     settings = settings or Settings.from_env()
     setup_logging(settings.log_level)
     log.info(
-        "Corroventa gateway starting (radio_enabled=%s radio_mode=%s)",
+        "Corroventa gateway starting (radio_enabled=%s radio_mode=%s "
+        "tx_quiet=%.2fs coalesce=%.2fs ignore_status=%.1fs)",
         settings.radio_enabled,
         settings.radio_mode,
+        settings.tx_quiet_s,
+        settings.tx_coalesce_s,
+        settings.tx_ignore_status_s,
     )
 
     radio = RadioBridge(mode=settings.radio_mode, enabled=settings.radio_enabled)
@@ -43,7 +48,14 @@ def run(settings: Settings | None = None) -> int:
         manager.handle_config_command(device_id, patch)
 
     mqtt = HaMqtt(settings, on_config_command=on_config_command)
-    manager = DeviceManager(mqtt, transmit=transmit, tx_repeats=settings.tx_repeats)
+    manager = DeviceManager(
+        mqtt,
+        transmit=transmit,
+        tx_repeats=settings.tx_repeats,
+        tx_quiet_s=settings.tx_quiet_s,
+        tx_coalesce_s=settings.tx_coalesce_s,
+        tx_ignore_status_s=settings.tx_ignore_status_s,
+    )
 
     seen_kinds: set[str] = set()
     rx_ok = 0
@@ -104,20 +116,7 @@ def run(settings: Settings | None = None) -> int:
         radio.start(on_raw_frame)
     except Exception:
         log.exception("Failed to start radio — continuing MQTT-only")
-        settings = Settings(
-            mqtt_host=settings.mqtt_host,
-            mqtt_port=settings.mqtt_port,
-            mqtt_username=settings.mqtt_username,
-            mqtt_password=settings.mqtt_password,
-            mqtt_client_id=settings.mqtt_client_id,
-            log_level=settings.log_level,
-            radio_mode=settings.radio_mode,
-            radio_enabled=False,
-            discovery_prefix=settings.discovery_prefix,
-            topic_prefix=settings.topic_prefix,
-            device_model=settings.device_model,
-            tx_repeats=settings.tx_repeats,
-        )
+        settings = replace(settings, radio_enabled=False)
 
     log.info("Gateway running")
     try:
@@ -125,6 +124,8 @@ def run(settings: Settings | None = None) -> int:
             time.sleep(0.5)
     finally:
         log.info("Shutting down")
+        if manager is not None:
+            manager.stop()
         radio.stop()
         if manager and manager.primary_device_id is not None:
             mqtt.publish_availability(manager.primary_device_id, False)

@@ -1,5 +1,5 @@
 name: Corroventa MQTT Gateway
-version: "0.2.10"
+version: "0.2.11"
 slug: corroventa
 description: >
   RF gateway for Corroventa CTR/HomeVision — publishes telemetry and config
@@ -30,6 +30,9 @@ options:
   topic_prefix: corroventa
   device_model: CTR300TT2
   tx_repeats: 8
+  tx_quiet_s: 0.25
+  tx_coalesce_s: 0.2
+  tx_ignore_status_s: 1.5
 schema:
   log_level: list(debug|info|warning|error)
   radio_mode: list(ys1)
@@ -38,6 +41,9 @@ schema:
   topic_prefix: str
   device_model: str
   tx_repeats: int(1,32)
+  tx_quiet_s: float(0.05,2)
+  tx_coalesce_s: float(0,2)
+  tx_ignore_status_s: float(0,5)
   mqtt_host: str?
   mqtt_port: port?
   mqtt_username: str?

@@ -38,6 +38,9 @@ export DISCOVERY_PREFIX="$(bashio::config "discovery_prefix")"
 export TOPIC_PREFIX="$(bashio::config "topic_prefix")"
 export DEVICE_MODEL="$(bashio::config "device_model")"
 export TX_REPEATS="$(bashio::config "tx_repeats")"
+export TX_QUIET_S="$(bashio::config "tx_quiet_s")"
+export TX_COALESCE_S="$(bashio::config "tx_coalesce_s")"
+export TX_IGNORE_STATUS_S="$(bashio::config "tx_ignore_status_s")"
 
 bashio::log.info "Starting Corroventa MQTT Gateway"
 exec python3 -m corroventa_gateway

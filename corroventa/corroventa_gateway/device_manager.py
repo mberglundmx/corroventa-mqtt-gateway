@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -36,12 +37,27 @@ class DeviceState:
 
 
 class DeviceManager:
-    """Tracks CTR/HV short addresses + state; routes MQTT → ConfigWrite."""
+    """Tracks CTR/HV short addresses + state; routes MQTT → ConfigWrite.
 
-    def __init__(self, mqtt: HaMqtt, transmit: TransmitFn, tx_repeats: int = 8) -> None:
+    Config commands are coalesced on a TX worker: concurrent HA automations merge
+    into one air write, and TX waits for a quiet gap on the channel.
+    """
+
+    def __init__(
+        self,
+        mqtt: HaMqtt,
+        transmit: TransmitFn,
+        tx_repeats: int = 8,
+        tx_quiet_s: float = 0.25,
+        tx_coalesce_s: float = 0.2,
+        tx_ignore_status_s: float = 1.5,
+    ) -> None:
         self._mqtt = mqtt
         self._transmit = transmit
         self._tx_repeats = tx_repeats
+        self._tx_quiet_s = tx_quiet_s
+        self._tx_coalesce_s = tx_coalesce_s
+        self._tx_ignore_status_s = tx_ignore_status_s
         self._lock = threading.Lock()
         self._devices: dict[int, DeviceState] = {}
         self._primary_device_id: int | None = None
@@ -49,6 +65,20 @@ class DeviceManager:
         self._hv_flags: int = HV_FLAGS_DEFAULT
         self._pending_ctr_addr: int | None = None
         self._orphan_write_header: bytes | None = None
+        self._last_rx_mono = 0.0
+        self._pending_patches: dict[int, dict[str, Any]] = {}
+        self._ignore_status_until: dict[int, float] = {}
+        self._stop = threading.Event()
+        self._tx_event = threading.Event()
+        self._tx_thread = threading.Thread(
+            target=self._tx_loop, name="config-tx", daemon=True
+        )
+        self._tx_thread.start()
+
+    def stop(self) -> None:
+        self._stop.set()
+        self._tx_event.set()
+        self._tx_thread.join(timeout=2)
 
     @property
     def primary_device_id(self) -> int | None:
@@ -130,6 +160,7 @@ class DeviceManager:
 
     def handle_frame(self, decoded: DecodedFrame) -> None:
         with self._lock:
+            self._last_rx_mono = time.monotonic()
             raw = bytes(decoded.raw) if decoded.raw else b""
 
             if raw:
@@ -173,6 +204,21 @@ class DeviceManager:
                 return
 
             if decoded.kind == "config_status" and decoded.config and device_id is not None:
+                ignore_until = self._ignore_status_until.get(device_id, 0.0)
+                now = time.monotonic()
+                if now < ignore_until:
+                    log.info(
+                        "Ignoring ConfigStatus %.2fs after TX device=%s "
+                        "mgi=%s hyst=%s/%s alarm=%s fan=%s (echo window)",
+                        ignore_until - now,
+                        device_id,
+                        decoded.config.mgi,
+                        decoded.config.hyst_lo,
+                        decoded.config.hyst_hi,
+                        decoded.config.alarm_rf,
+                        decoded.config.continuous_fan,
+                    )
+                    return
                 dev = self._device(device_id)
                 dev.config = decoded.config
                 if dev.config_write_header is None:
@@ -220,7 +266,55 @@ class DeviceManager:
                 log.debug("Ignoring unknown frame L=0x%02x", raw[4] if len(raw) > 4 else -1)
 
     def handle_config_command(self, device_id: int, patch: dict[str, Any]) -> None:
+        """Queue a config patch; TX worker coalesces and sends one ConfigWrite."""
         with self._lock:
+            pending = self._pending_patches.setdefault(device_id, {})
+            pending.update(patch)
+            log.info(
+                "Queued config patch device=%s patch=%s pending=%s",
+                device_id,
+                patch,
+                dict(pending),
+            )
+        self._tx_event.set()
+
+    def _take_pending(self) -> tuple[int, dict[str, Any]] | None:
+        with self._lock:
+            if not self._pending_patches:
+                return None
+            device_id = next(iter(self._pending_patches))
+            patch = dict(self._pending_patches.pop(device_id))
+            return device_id, patch
+
+    def _wait_air_quiet(self) -> None:
+        quiet = self._tx_quiet_s
+        timeout = max(3.0, quiet * 12.0)
+        deadline = time.monotonic() + timeout
+        while not self._stop.is_set() and time.monotonic() < deadline:
+            with self._lock:
+                last = self._last_rx_mono
+            now = time.monotonic()
+            if last <= 0.0:
+                # No RX yet — brief settle then send.
+                time.sleep(min(quiet, 0.1))
+                return
+            if now - last >= quiet:
+                return
+            time.sleep(0.05)
+        log.warning(
+            "TX quiet-wait timed out after %.1fs (need %.2fs silence) — sending anyway",
+            timeout,
+            quiet,
+        )
+
+    def _send_merged(self, device_id: int, patch: dict[str, Any]) -> None:
+        with self._lock:
+            # Absorb any patches that arrived while waiting for quiet.
+            extra = self._pending_patches.pop(device_id, None)
+            if extra:
+                patch = {**patch, **extra}
+                log.info("Coalesced extra patch device=%s pending=%s", device_id, patch)
+
             dev = self._device(device_id)
             header = dev.config_write_header or self._compose_config_write_header(dev.short_addr)
             if header is None:
@@ -229,6 +323,9 @@ class DeviceManager:
                     "HV/CTR short addresses (or a ConfigWrite on air)",
                     device_id,
                 )
+                # Re-queue so a later attempt can succeed once header is known.
+                pending = self._pending_patches.setdefault(device_id, {})
+                pending.update(patch)
                 return
             base = dev.config
             if base is None:
@@ -249,10 +346,58 @@ class DeviceManager:
                 frame[17] if len(frame) > 17 else -1,
                 frame.hex(" "),
             )
+
         self._transmit(frame)
+
         with self._lock:
             self._device(device_id).config = merged
             if self._device(device_id).config_write_header is None:
                 self._device(device_id).config_write_header = header
-            # Optimistic MQTT state so HA switch/numbers update before next ConfigStatus.
+            self._ignore_status_until[device_id] = (
+                time.monotonic() + self._tx_ignore_status_s
+            )
             self._mqtt.publish_config(device_id, merged)
+            log.info(
+                "TX done device=%s — ignoring ConfigStatus for %.1fs",
+                device_id,
+                self._tx_ignore_status_s,
+            )
+
+    def _tx_loop(self) -> None:
+        while not self._stop.is_set():
+            triggered = self._tx_event.wait(timeout=0.5)
+            if self._stop.is_set():
+                break
+            if triggered:
+                self._tx_event.clear()
+            with self._lock:
+                has_pending = bool(self._pending_patches)
+            if not has_pending:
+                continue
+
+            # Let near-simultaneous automations land in the same pending dict.
+            time.sleep(self._tx_coalesce_s)
+
+            while not self._stop.is_set():
+                item = self._take_pending()
+                if item is None:
+                    break
+                device_id, patch = item
+                log.info(
+                    "TX worker: quiet-wait then send device=%s patch=%s",
+                    device_id,
+                    patch,
+                )
+                self._wait_air_quiet()
+                if self._stop.is_set():
+                    with self._lock:
+                        pending = self._pending_patches.setdefault(device_id, {})
+                        pending.update(patch)
+                    break
+                try:
+                    self._send_merged(device_id, patch)
+                except Exception:
+                    log.exception("TX failed device=%s", device_id)
+                    with self._lock:
+                        pending = self._pending_patches.setdefault(device_id, {})
+                        pending.update(patch)

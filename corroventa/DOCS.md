@@ -20,6 +20,9 @@ Home Assistant via MQTT discovery entities.
 | `radio_mode` | `ys1` | Radio backend (`ys1` = Yard Stick One; only option today) |
 | `radio_enabled` | `true` | Set `false` for MQTT-only debugging |
 | `tx_repeats` | `8` | ConfigWrite air repeats |
+| `tx_quiet_s` | `0.25` | Require this much RX silence before TX |
+| `tx_coalesce_s` | `0.2` | Merge near-simultaneous MQTT patches into one write |
+| `tx_ignore_status_s` | `1.5` | Ignore ConfigStatus briefly after own TX |
 | `topic_prefix` | `corroventa` | MQTT root |
 | `discovery_prefix` | `homeassistant` | HA discovery root |
 
