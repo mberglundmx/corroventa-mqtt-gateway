@@ -21,7 +21,7 @@ HV_FLAGS_DEFAULT = 0x82
 CONFIG_WRITE_N = 0x08
 CONFIG_WRITE_CMD = 0x22
 
-_HV_KINDS = frozenset({"keepalive", "poll", "config_write"})
+_HV_KINDS = frozenset({"keepalive", "poll", "config_write", "datetime_write"})
 _CTR_KINDS = frozenset({"config_status", "telemetry", "statistics", "pairing_beacon"})
 
 
@@ -203,6 +203,15 @@ class DeviceManager:
                     self._device(device_id).config = decoded.config
                 return
 
+            if decoded.kind == "datetime_write":
+                dt = getattr(decoded, "datetime_write", None)
+                log.info(
+                    "DateTimeWrite raw=%s fields=%s",
+                    decoded.raw_hex if hasattr(decoded, "raw_hex") else raw.hex(" "),
+                    dt,
+                )
+                return
+
             if decoded.kind == "config_status" and decoded.config and device_id is not None:
                 ignore_until = self._ignore_status_until.get(device_id, 0.0)
                 now = time.monotonic()
@@ -263,7 +272,11 @@ class DeviceManager:
             elif decoded.kind == "telemetry":
                 log.warning("Telemetry frame without payload device=%s", device_id)
             elif decoded.kind == "unknown":
-                log.debug("Ignoring unknown frame L=0x%02x", raw[4] if len(raw) > 4 else -1)
+                log.info(
+                    "RX unknown L=0x%02x hex=%s",
+                    raw[4] if len(raw) > 4 else -1,
+                    raw.hex(" "),
+                )
 
     def handle_config_command(self, device_id: int, patch: dict[str, Any]) -> None:
         """Queue a config patch; TX worker coalesces and sends one ConfigWrite."""

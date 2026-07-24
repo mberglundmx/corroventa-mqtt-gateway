@@ -34,13 +34,17 @@ USB passthrough is declared in the add-on (`usb`, `/dev/bus/usb`).
 repository.yaml          # add-on store metadata
 corroventa/              # add-on slug (= folder name)
   config.yaml            # Supervisor options / schema
-  build.yaml
-  Dockerfile             # build context = this folder only
-  run.sh                 # bashio → python -m corroventa_gateway
+  build.yaml             # pins PROTOCOL_REF / YARDSTICK_REF
+  Dockerfile             # clones tagged protocol + yardstick at build
+  run.sh
   requirements.txt       # paho-mqtt, pyusb, rfcat (rflib)
   corroventa_gateway/    # application
-  vendor/                # protocol sources + yardstick transport
 ```
+
+Build-time pins (see `build.yaml`):
+
+- `PROTOCOL_REF` → [corroventa-protocol](https://github.com/mberglundmx/corroventa-protocol) tag
+- `YARDSTICK_REF` → [corroventa-radio-yardstick](https://github.com/mberglundmx/corroventa-radio-yardstick) tag
 
 ## MQTT (HA best practice)
 
@@ -64,8 +68,8 @@ mosquitto_pub -t corroventa/device/1348002652/config/set -m '{"mgi": -7}'
 
 ## Dependencies
 
-- **Protocol:** C++ `corroventa-protocol` via **pybind11** (built in the Dockerfile)
-- **Radio:** vendored `corroventa_radio_yardstick` + **`rfcat`/`rflib`** (pip) + libusb
+- **Protocol:** C++ `corroventa-protocol` via **pybind11** (git tag cloned in Dockerfile)
+- **Radio:** `corroventa-radio-yardstick` (git tag) + **`rfcat`/`rflib`** (pip) + libusb
 
 ## Standalone (dev)
 

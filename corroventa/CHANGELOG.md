@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.13
+
+- Decode HV DateTimeWrite (`L=0x0D` cmd `0x27`); log at INFO (+ unknown frames)
+- Build pins `corroventa-protocol` / `corroventa-radio-yardstick` git tags (no vendor copy)
+
 ## 0.2.12
 
 - Remove Device time HA entity (logbook spam); clear retained discovery
