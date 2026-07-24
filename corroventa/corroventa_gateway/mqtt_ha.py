@@ -132,11 +132,11 @@ class HaMqtt:
             "name": f"Corroventa {device_id}",
             "manufacturer": "Corroventa",
             "model": self.settings.device_model,
-            "sw_version": "gateway-0.2.11",
+            "sw_version": "gateway-0.2.12",
         }
         origin = {
             "name": "Corroventa MQTT Gateway",
-            "sw_version": "0.2.11",
+            "sw_version": "0.2.12",
             "support_url": "https://github.com/mberglundmx/corroventa-mqtt-gateway",
         }
 
@@ -296,16 +296,13 @@ class HaMqtt:
                 "state_class": "measurement",
             },
         )
-        pub(
-            "sensor",
-            "device_datetime",
-            {
-                "name": "Device time",
-                "state_topic": tel,
-                # Minute resolution — second ticks would flood the HA logbook.
-                "value_template": "{{ value_json.datetime[:16] }}",
-                "entity_category": "diagnostic",
-            },
+        # Drop Device time entity — minute ticks flooded HA logbook.
+        # Datetime remains in telemetry JSON if needed later.
+        self._client.publish(
+            f"{prefix}/sensor/{node}/device_datetime/config",
+            "",
+            retain=True,
+            qos=1,
         )
         pub(
             "sensor",

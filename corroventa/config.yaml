@@ -1,5 +1,5 @@
 name: Corroventa MQTT Gateway
-version: "0.2.11"
+version: "0.2.12"
 slug: corroventa
 description: >
   RF gateway for Corroventa CTR/HomeVision — publishes telemetry and config

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.12
+
+- Remove Device time HA entity (logbook spam); clear retained discovery
+
 ## 0.2.11
 
 - Coalesce concurrent config patches into one ConfigWrite
